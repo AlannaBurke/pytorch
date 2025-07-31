@@ -28,6 +28,9 @@
       Short for "A Tensor Library". The foundational tensor and mathematical
       operation library on which all else is built.
       
+    ATen operators
+      A set of low-level, tensor-based operators in PyTorch that provide basic building blocks for more complex operations, including element-wise operations, reductions, and linear algebra functions
+      
     Composite Operation
       Same as Compound Operation.
  
