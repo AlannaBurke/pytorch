@@ -6,7 +6,6 @@ from torch._dynamo.exc import UserError, UserErrorType
 from torch.export.dynamic_shapes import (
     _check_dynamic_shapes,
     _DerivedDim,
-    _Dim,
     _DimHint,
     _tree_map_with_path,
     Dim,
@@ -19,7 +18,7 @@ from .serialize import _dataclass_to_dict
 @dataclasses.dataclass
 class RootDim:
     """
-    This represents a _Dim object.
+    This represents a Dim object.
     """
 
     min: int
@@ -108,20 +107,20 @@ def _dump_dynamic_shapes(
     would generate the following output:
     ```
     {
-        'dynamic_shapes': (
+        "dynamic_shapes": (
             [
-                ['dx', 4],
-                ['dx + 1', 4],
+                ["dx", 4],
+                ["dx + 1", 4],
             ],
-            ['_DimHint.STATIC'],
-            ['_DimHint.STATIC', '_DimHint.STATIC'],
+            ["_DimHint.STATIC"],
+            ["_DimHint.STATIC", "_DimHint.STATIC"],
             None,
         ),
-        'dims': {
-            'dx': {
-                'min': 4,
-                'max': 16,
-                'derived': ['dx + 1'],
+        "dims": {
+            "dx": {
+                "min": 4,
+                "max": 16,
+                "derived": ["dx + 1"],
             },
         },
     }
@@ -150,7 +149,7 @@ def _dump_dynamic_shapes(
         return out
 
     def _track_dim_from_dims(
-        val: Union[None, int, _DimHint, _Dim]
+        val: Union[None, int, _DimHint, Dim],
     ) -> Union[None, int, str]:
         """
         Tracks dims, ranges, derived dims from the standardized dynamic_shapes spec.
@@ -160,7 +159,7 @@ def _dump_dynamic_shapes(
         if isinstance(val, _DimHint):  # store enum as string
             return val.__class__.__name__ + "." + val.type.name
 
-        assert isinstance(val, _Dim)
+        assert isinstance(val, Dim)
 
         # track root dim
         root = val.root if isinstance(val, _DerivedDim) else val  # type: ignore[attr-defined]
@@ -296,8 +295,8 @@ def _load_dynamic_shapes(
             dim_cache[_expr] = ddim  # cache derived dims
 
     def deserialize_shape(
-        val: Union[None, int, str]
-    ) -> Union[None, int, _Dim, _DimHint]:
+        val: Union[None, int, str],
+    ) -> Union[None, int, Dim, _DimHint]:
         if val is None or isinstance(val, int):
             return val
         elif val == "_DimHint.AUTO":

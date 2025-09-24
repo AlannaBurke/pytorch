@@ -1,6 +1,7 @@
 #undef __HIP_NO_HALF_CONVERSIONS__
 
 #include <ATen/native/hip/ck_gemm.h>
+#if defined(USE_ROCM_CK_GEMM)
 #include <ATen/native/hip/ck_gemm_template.h>
 
 #include <ck/utility/sequence.hpp>
@@ -598,9 +599,7 @@ void dispatch_half_gemm_wmma(CUDABLAS_GEMM_ARGTYPES(at::Half)) {
 
 template <>
 void gemm_internal_ck<at::Half>(CUDABLAS_GEMM_ARGTYPES(at::Half)) {
-  auto dprops = at::cuda::getCurrentDeviceProperties();
-  c10::string_view arch(dprops->gcnArchName);
-  if (arch == "gfx1100") {
+  if (at::detail::getCUDAHooks().isGPUArch({"gfx1100"})) {
     dispatch_half_gemm_wmma(CUDABLAS_GEMM_ARGS(at::Half));
   } else{
     dispatch_half_gemm(CUDABLAS_GEMM_ARGS(at::Half));
@@ -608,3 +607,4 @@ void gemm_internal_ck<at::Half>(CUDABLAS_GEMM_ARGTYPES(at::Half)) {
 }
 
 } // namespace at::native
+#endif // USE_ROCM_CK_GEMM

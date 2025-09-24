@@ -24,6 +24,7 @@ from torch.distributed.checkpoint.default_planner import (
     DefaultLoadPlanner,
     DefaultSavePlanner,
 )
+from torch.distributed.checkpoint.filesystem import CURRENT_DCP_VERSION
 from torch.distributed.checkpoint.metadata import (
     BytesStorageMetadata,
     ChunkStorageMetadata,
@@ -256,6 +257,9 @@ class TestSavePlan(TestCase):
             self.assertIsNone(plan.storage_data)
 
         self.assertEqual(first_metadata, second_metadata)
+        self.assertEqual(
+            second_metadata, planner._cached_metadata[planner._cached_plans_key]
+        )
 
         # Validate that all_plans are cached and remain unchanged.
         cached_all_plans = SavePlanner._cached_all_plans[planner._cached_plans_key]
@@ -296,6 +300,10 @@ class TestSavePlan(TestCase):
 
         # Global metadata should be different as one plan has changed
         self.assertNotEqual(second_metadata, third_metadata)
+        # Validate that the metadata is cached
+        self.assertEqual(
+            third_metadata, planner._cached_metadata[planner._cached_plans_key]
+        )
 
         # Validate that the new plan has been cached
         cached_global_plan = SavePlanner._cached_global_plan[planner._cached_plans_key][
@@ -585,6 +593,22 @@ class TestLoadPlanner(TestCase):
                 checkpoint_id=self.temp_dir,
                 planner=DefaultLoadPlanner(),
             )
+
+    @with_temp_dir
+    def test_version_key_in_planner_data(self):
+        original_module = nn.Linear(2, 2)
+
+        dcp.save(state_dict={"module": original_module}, checkpoint_id=self.temp_dir)
+
+        new_module = nn.Linear(2, 2)
+        planner = DefaultLoadPlanner()
+        dcp.load(
+            state_dict={"module": new_module},
+            checkpoint_id=self.temp_dir,
+            planner=planner,
+        )
+
+        self.assertEqual(planner.metadata.version, CURRENT_DCP_VERSION)
 
 
 if __name__ == "__main__":

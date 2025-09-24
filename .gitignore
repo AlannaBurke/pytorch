@@ -32,6 +32,7 @@ coverage.xml
 aten/build/
 aten/src/ATen/Config.h
 aten/src/ATen/cuda/CUDAConfig.h
+aten/src/ATen/hip/HIPConfig.h
 benchmarks/.data
 caffe2/cpp_test/
 dist/
@@ -47,6 +48,7 @@ docs/source/generated/
 docs/source/compile/generated/
 log
 usage_log.txt
+usage_log*
 test-reports/
 test/*.bak
 test/**/*.bak
@@ -145,6 +147,9 @@ merge_record.json
 torchgen/packaged/*
 !torchgen/packaged/README.md
 
+# This file is injected by ROCm build scripts to bootstrap in torch/__init__.py.
+torch/_rocm_init.py
+
 # IPython notebook checkpoints
 .ipynb_checkpoints
 
@@ -178,6 +183,7 @@ compile_commands.json
 *.egg-info/
 docs/source/scripts/activation_images/
 docs/source/scripts/quantization_backend_configs/
+docs/source/scripts/lr_scheduler_images/
 
 ## General
 
@@ -210,15 +216,6 @@ docs/source/scripts/quantization_backend_configs/
 
 # Compiled MATLAB
 *.mex*
-
-# IPython notebook checkpoints
-.ipynb_checkpoints
-
-# Editor temporaries
-*.swn
-*.swo
-*.swp
-*~
 
 # NFS handle files
 **/.nfs*
@@ -261,6 +258,9 @@ gen
 .setuptools-cmake-build
 .pytest_cache
 aten/build/*
+
+# Linker scripts for prioritized text optimization
+cmake/linker_script.ld
 
 # Bram
 plsdontbreak
@@ -389,3 +389,8 @@ android/pytorch_android_torchvision/.cxx
 .arcconfig
 .stable_pyre_client
 .pyre_client
+
+# Claude Code local configuration
+CLAUDE.local.md
+/test_*.py
+/debug_*.py

@@ -46,6 +46,20 @@ def register_fake_operators():
     def fake_queue_push(tq, x):
         return tq.push(x)
 
+    torch.library.register_autocast(
+        "_TorchScriptTesting::queue_push", "cpu", torch.float32
+    )
+    torch.library.register_autocast(
+        "_TorchScriptTesting::queue_push", "cuda", torch.float32
+    )
+
+    torch.library.register_autocast(
+        "_TorchScriptTesting::queue_pop", "cpu", torch.float32
+    )
+    torch.library.register_autocast(
+        "_TorchScriptTesting::queue_pop", "cuda", torch.float32
+    )
+
     @torch.library.register_fake("_TorchScriptTesting::queue_size")
     def fake_queue_size(tq):
         return tq.size()
@@ -60,6 +74,13 @@ def register_fake_operators():
         a = foo.add_tensor(x)
         b = foo.add_tensor(a)
         return (a, b)
+
+    @torch.library.register_fake("_TorchScriptTesting::takes_foo_tensor_return")
+    def meta_takes_foo_tensor_return(foo, x):
+        # This implementation deliberately creates unbacked symint for testing
+        ctx = torch.library.get_ctx()
+        fake_shape = [ctx.new_dynamic_size() for _ in range(2)]
+        return torch.empty(fake_shape, dtype=torch.int, device="cpu")
 
     torch.ops._TorchScriptTesting.takes_foo_list_return.default.py_impl(
         torch._C.DispatchKey.Meta

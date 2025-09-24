@@ -49,7 +49,7 @@ log = logging.getLogger(__name__)
 sym_node_log = torch._logging.getArtifactLogger(__name__, "sym_node")
 
 
-__all__ = ["SymNode", "method_to_operator", "magic_methods"]
+__all__ = ["SymNode", "method_to_operator", "magic_methods", "DynamicInt"]
 
 
 from torch.types import py_sym_types as SymTypes
@@ -149,9 +149,9 @@ class SymNode:
                 # This is technically not TV, but this assert is expensive so
                 # let's only do it when we're already doing expensive things
                 computed_hint = compute_hint()
-                assert (
-                    hint == computed_hint
-                ), f"{hint} != {computed_hint} (for {self.expr})"
+                assert hint == computed_hint, (
+                    f"{hint} != {computed_hint} (for {self.expr})"
+                )
         else:
             hint = compute_hint()
         self._hint = hint
@@ -460,7 +460,9 @@ class SymNode:
         return self.float_pow(other)
 
     def is_non_overlapping_and_dense(self, sizes, strides):
-        return self.is_non_overlapping_and_dense_indicator(sizes, strides).eq(to_node(self, 1))  # type: ignore[attr-defined]
+        return self.is_non_overlapping_and_dense_indicator(sizes, strides).eq(
+            to_node(self, 1)
+        )  # type: ignore[attr-defined]
 
     def int_(self):
         return self.guard_int("", 0)  # NB: uses Python backtrace
@@ -554,7 +556,7 @@ class SymNode:
         # a regular guard if we can!)
         # TODO: file/line here is very important, because the assert has been
         # deferred so you can't backtrace easily
-        return self.shape_env.defer_runtime_assert(
+        return self.shape_env.guard_or_defer_runtime_assert(
             self.expr, f"{file}:{line}", fx_node=self.fx_node
         )
 
@@ -571,6 +573,12 @@ class SymNode:
         if r and not self.has_hint():
             _advise_is_size(SymInt(self))
         return r
+
+    def statically_known_true(self, file, line):
+        from torch.fx.experimental.symbolic_shapes import statically_known_true
+
+        assert self.is_bool()
+        return statically_known_true(SymBool(self))
 
     def guard_size_oblivious(self, file, line):
         """
@@ -592,6 +600,18 @@ class SymNode:
             log.warning("Failed to convert to bool: %s", r)
             raise
 
+    def guard_or_false(self, file, line):
+        from torch.fx.experimental.symbolic_shapes import guard_or_false
+
+        assert self.is_bool()
+        return guard_or_false(SymBool(self))
+
+    def guard_or_true(self, file, line):
+        from torch.fx.experimental.symbolic_shapes import guard_or_true
+
+        assert self.is_bool()
+        return guard_or_true(SymBool(self))
+
     def bool_(self):
         return self.guard_bool("", 0)
 
@@ -603,6 +623,40 @@ class SymNode:
 
     def is_constant(self):
         return False
+
+
+class _DynamicScalar:
+    def __new__(cls, *args):
+        if cls is _DynamicScalar:
+            raise TypeError("_DynamicScalar is an abstract base class, use DynamicInt.")
+        return super().__new__(cls, *args)
+
+
+class DynamicInt(_DynamicScalar, int):
+    """
+    User API for marking dynamic integers in `torch.compile`.
+    Intended to be compatible with both compile and eager mode.
+
+    Example usage::
+
+        fn = torch.compile(f)
+        x = DynamicInt(4)
+        fn(x)  # compiles x as a dynamic integer input; returns f(4)
+    """
+
+    def __new__(cls, val):
+        assert isinstance(val, int)
+        obj = super().__new__(cls, int(val))
+        return obj
+
+    def __repr__(self):
+        return f"DynamicInt({self.real})"
+
+    def __floordiv__(self, other):  # // was casting to int without these overrides?
+        return DynamicInt(self.real // other)
+
+    def __rfloordiv__(self, other):
+        return DynamicInt(other // self.real)
 
 
 # TODO: this probably needs the sizes-strides eval functions
@@ -853,6 +907,7 @@ def _optimized_add(
     from sympy.core.basic import _args_sortkey as sortkey
 
     def make_optimized(ordered_args):
+        assert ordered_args is not None
         result = sympy.Add(*ordered_args, evaluate=False)
         return (True, result)
 
@@ -869,15 +924,28 @@ def _optimized_add(
         if sortkey(lhs._args[0]) > sortkey(rhs._args[-1]):
             return make_optimized(rhs._args + lhs._args)
 
+        #  (a1+a3) + (a0+a2) => (a0+a1+a2+a3)
+        if len(lhs._args) <= 2 and len(rhs._args) <= 2:
+            new_args = list(lhs._args)
+            for a in rhs._args:
+                new_args = _binary_search_insert_arg(new_args, a)
+                if new_args is None:
+                    break
+            # None means an element already exists.
+            if new_args is not None:
+                return make_optimized(new_args)
+
     # (a0+a2) + a1 => (a0+a1+a2)
     if lhs_is_optimized_summation and rhs.is_symbol:
         new_args = _binary_search_insert_arg(list(lhs._args), rhs)
+        # None means an element already exists.
         if new_args is not None:
             return make_optimized(new_args)
 
     # a1 + (a0+a2)=> (a0+a1+a2)
     if rhs_is_optimized_summation and lhs.is_symbol:
         new_args = _binary_search_insert_arg(list(rhs._args), lhs)
+        # None means an element already exists.
         if new_args is not None:
             return make_optimized(new_args)
 
@@ -1193,11 +1261,6 @@ sizes_strides_methods = {
     "is_non_overlapping_and_dense_indicator": _sympy_is_non_overlapping_and_dense_indicator,
 }
 
-alternate_impl_if_hinted_methods = {
-    "sym_min": builtins.min,
-    "sym_max": builtins.max,
-}
-
 
 def to_node(self, num):
     if isinstance(num, SymTypes):
@@ -1316,10 +1379,6 @@ def _make_node_magic(method, func):
         if self.hint is not None and other.hint is not None:
             out_hint = op(self.hint, other.hint)
 
-        alternate_impl = alternate_impl_if_hinted_methods.get(method)
-        if alternate_impl and out_hint is not None:
-            return to_node(self, alternate_impl(wrap_node(self), wrap_node(other)))
-
         if get_proxy_mode():
             return to_node(
                 self, handle_sym_dispatch(op, (wrap_node(self), wrap_node(other)), {})
@@ -1392,7 +1451,7 @@ def _make_node_magic(method, func):
             out,
             self.shape_env,
             pytype,
-            out_hint,
+            out_hint,  # type: ignore[arg-type]
             fx_node=fx_node,
             optimized_summation=optimized_summation,  # see Note [optimized_summation]
         )
@@ -1625,7 +1684,6 @@ for method, func in sizes_strides_methods.items():
 def _make_user_magic(method, user_type):
     # User magic takes care of wrapping the other operand into a node,
     # so that our internal logic can assume everything is nodes
-
     if method in magic_methods_on_operator_with_trailing_underscore:
         method_attr = f"sym_{method}"
     else:
@@ -1756,7 +1814,7 @@ def _make_user_magic(method, user_type):
         other = promote(other)
         self, other = promote2(self, other)
         if is_constant(self):
-            return (method_to_operator(method))(get_constant(self), other)
+            return (method_to_operator(method))(other, get_constant(self))
         if is_constant(other):
             other = get_constant(other)
         other_node = to_node(self.node, other)
@@ -1765,11 +1823,31 @@ def _make_user_magic(method, user_type):
         ret = wrap_node(getattr(other_node, method_attr)(self.node))
         return get_constant(ret) if is_constant(ret) else ret
 
+    def setattrs(user_type, attr, symnode_impl):
+        """
+        Registers the SymNode magic method on SymInt/Float/Bool,
+        and optionally registers a corresponding wrapped method on DynamicInt.
+        """
+
+        # SymInt/Float/Bool
+        setattr(user_type, attr, symnode_impl)
+
+        # DynamicInt impl
+        def dynamic_int_impl(*args):
+            args = [x.real if isinstance(x, DynamicInt) else x for x in args]
+            out = getattr(int, attr)(*args)
+            if isinstance(out, int) and not isinstance(out, bool):
+                return DynamicInt(out)
+            return out
+
+        if user_type is SymInt:
+            setattr(DynamicInt, attr, dynamic_int_impl)
+
     if method in unary_magic_methods:
-        setattr(user_type, f"__{method}__", unary_magic_impl)
+        setattrs(user_type, f"__{method}__", unary_magic_impl)
     elif method in unary_nonmagic_methods:
         orig = getattr(user_type, method)
-        setattr(user_type, method, update_wrapper(unary_magic_impl, orig))
+        setattrs(user_type, method, update_wrapper(unary_magic_impl, orig))
     elif method == "sym_ite":
 
         def sym_ite_magic_impl(pred, then_val, else_val):
@@ -1786,7 +1864,7 @@ def _make_user_magic(method, user_type):
             ret = wrap_node(getattr(pred.node, method_attr)(then_node, else_node))
             return get_constant(ret) if ret.node.is_constant() else ret
 
-        setattr(user_type, f"__{method}__", sym_ite_magic_impl)
+        setattrs(user_type, f"__{method}__", sym_ite_magic_impl)
     elif method == "round":
 
         def round_magic_impl(self, ndigits=None):
@@ -1795,14 +1873,14 @@ def _make_user_magic(method, user_type):
 
             return wrap_node(getattr(self.node, method)(ndigits))
 
-        setattr(user_type, f"__{method}__", round_magic_impl)
+        setattrs(user_type, f"__{method}__", round_magic_impl)
     else:
         method_name = method
         if method in bitwise_ops:
             method_name = bitwise_ops[method]
-        setattr(user_type, f"__{method_name}__", binary_magic_impl)
+        setattrs(user_type, f"__{method_name}__", binary_magic_impl)
         if method in reflectable_magic_methods:
-            setattr(user_type, f"__r{method_name}__", rbinary_magic_impl)
+            setattrs(user_type, f"__r{method_name}__", rbinary_magic_impl)
 
 
 for method, func in magic_methods.items():  # type: ignore[assignment]
