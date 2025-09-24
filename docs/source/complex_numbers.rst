@@ -165,7 +165,7 @@ We do not fully support the following subsystems:
 
 * Quantization
 
-* JIT
+* :term:`JIT`
 
 * Sparse Tensors
 
