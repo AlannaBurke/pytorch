@@ -1,0 +1,119 @@
+/*
+ * target-size.css — PyTorch Docs WCAG 2.5.8 Target Size (Minimum)
+ *
+ * WCAG 2.5.8 (new in WCAG 2.2, AA): interactive targets must be at least
+ * 24×24 CSS pixels, OR have sufficient spacing so the total "target offset"
+ * area meets 24px in each dimension.
+ *
+ * axe-core violation: target-size (439 nodes across 57 pages)
+ *
+ * Primary offenders identified in the audit:
+ *   1. Sidebar external library links (.nav-link.nav-external) — rendered
+ *      as small inline links with insufficient height (~18px)
+ *   2. Secondary sidebar "on this page" anchor links — similarly small
+ *   3. Copy-to-clipboard buttons (.copybtn) — already 1.7em but may be
+ *      under 24px at small base font sizes
+ *   4. Header icon links (.navbar-icon-links a) — icon-only, may be small
+ *
+ * Strategy: use min-height / min-width with padding adjustments so the
+ * visual appearance is preserved but the clickable area meets the minimum.
+ * We avoid changing layout-critical properties that could cause regressions.
+ */
+
+/* ── Sidebar navigation links ────────────────────────────────────────────── */
+/*
+ * .nav-link elements in the primary sidebar (library links, toctree entries).
+ * These are the primary source of target-size violations.
+ * Set min-height to 24px and ensure adequate vertical padding.
+ */
+.bd-sidebar-primary .nav-link,
+.bd-sidebar-primary .reference,
+.bd-sidebar-secondary .nav-link,
+.bd-sidebar-secondary .reference {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding-top: max(0.15rem, calc((24px - 1em) / 2));
+  padding-bottom: max(0.15rem, calc((24px - 1em) / 2));
+}
+
+/* External library links specifically flagged by the audit */
+.bd-sidebar-primary .nav-link.nav-external,
+.bd-sidebar-primary a.nav-external {
+  min-height: 24px;
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+  /* Preserve the muted color set inline — do not override */
+}
+
+/* ── Secondary sidebar (on this page) links ──────────────────────────────── */
+.bd-sidebar-secondary .toc-entry a,
+.bd-sidebar-secondary .nav-link {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  padding-top: 0.15rem;
+  padding-bottom: 0.15rem;
+}
+
+/* ── Copy-to-clipboard buttons ───────────────────────────────────────────── */
+/*
+ * .copybtn is already 1.7em × 1.7em. At a 14px base font that is ~23.8px.
+ * Bump to a guaranteed 24px minimum.
+ */
+button.copybtn {
+  min-width: 24px;
+  min-height: 24px;
+  width: max(1.7em, 24px);
+  height: max(1.7em, 24px);
+}
+
+/* ── Header icon links ───────────────────────────────────────────────────── */
+/*
+ * Icon-only links in the navbar end (GitHub, X, Forum, PyPI icons).
+ */
+.navbar-icon-links a,
+.navbar-icon-links .nav-link {
+  min-width: 24px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem;
+}
+
+/* ── Breadcrumb links ────────────────────────────────────────────────────── */
+.bd-breadcrumbs a,
+.breadcrumb-item a {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ── Pagination prev/next links ──────────────────────────────────────────── */
+.prev-next-area a {
+  min-height: 44px; /* larger touch target for primary navigation */
+  display: flex;
+  align-items: center;
+}
+
+/* ── Theme switcher button ───────────────────────────────────────────────── */
+.theme-switch-button,
+button[aria-label*="theme"],
+button[aria-label*="Theme"] {
+  min-width: 24px;
+  min-height: 24px;
+}
+
+/* ── Footnote back-reference links ──────────────────────────────────────── */
+/*
+ * Footnote back-links ([1], [2], …) are often very small.
+ * Increase their padding to meet the 24px offset requirement.
+ */
+.footnote-reference,
+a.footnote-reference {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 0.2rem;
+}
