@@ -1,0 +1,78 @@
+/*
+ * inline-links.css — PyTorch Docs WCAG 1.4.1 Use of Colour
+ *
+ * WCAG 1.4.1: information conveyed by colour alone must also be conveyed
+ * by another visual means. Links within body text must be distinguishable
+ * from surrounding text without relying solely on colour.
+ *
+ * axe-core violation: link-in-text-block (26 nodes across 26 pages)
+ *
+ * Primary offenders:
+ *   - Footer / cookie banner links (Privacy Policy, Read the full documentation)
+ *   - Inline links in tutorial prose that rely only on the theme's link colour
+ *
+ * Fix: ensure all inline links in prose content have a visible underline.
+ * We scope the rule tightly to avoid affecting navigation links, which are
+ * already visually distinct from surrounding text by their container context.
+ *
+ * Visually-hidden utility class (used by form-labels.js)
+ */
+
+/* ── Visually-hidden utility ─────────────────────────────────────────────── */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Inline links in prose must be underlined ────────────────────────────── */
+/*
+ * Target links inside the main article body and cookie/footer text.
+ * Excludes:
+ *   - Navigation links (.nav-link, .toctree-l*)
+ *   - Header/breadcrumb links
+ *   - Code references (.reference.internal in API docs, which are styled
+ *     differently and already visually distinct by monospace font)
+ *   - Buttons styled as links
+ */
+.bd-article-container a:not(.nav-link):not(.headerlink):not(.btn):not([role="button"]),
+.bd-content a:not(.nav-link):not(.headerlink):not(.btn):not([role="button"]),
+article a:not(.nav-link):not(.headerlink):not(.btn):not([role="button"]),
+#hs-eu-policy-wording a,
+#hs-eu-cookie-disclaimer a,
+.footer-content a {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+/*
+ * Restore no-underline for links that are already visually distinct
+ * because they are in a code block (monospace font is a sufficient cue).
+ */
+.highlight a,
+pre a,
+code a,
+.docutils.literal a {
+  text-decoration: none;
+}
+
+/*
+ * Ensure hover/focus states remain clear.
+ */
+.bd-article-container a:not(.nav-link):not(.headerlink):not(.btn):hover,
+.bd-content a:not(.nav-link):not(.headerlink):not(.btn):hover {
+  text-decoration-thickness: 2px;
+}
+
+.bd-article-container a:not(.nav-link):not(.headerlink):not(.btn):focus-visible,
+.bd-content a:not(.nav-link):not(.headerlink):not(.btn):focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
