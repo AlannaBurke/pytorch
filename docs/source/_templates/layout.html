@@ -1,0 +1,75 @@
+{% extends "!layout.html" %}
+{#
+  layout.html — PyTorch Docs template override
+  Extends the pytorch_sphinx_theme2 base layout.html.
+
+  Changes from upstream:
+  - WCAG 1.1.1 (image-alt): Add alt attributes to the three call-to-action
+    images in the tutorial header (Colab, Download Notebook, View on GitHub).
+    The upstream template leaves these as <img> with no alt attribute, causing
+    57 image-alt violations across 19 tutorial pages.
+
+  The images are decorative in the sense that the link text already describes
+  the action, so alt="" (empty) is the correct value — it marks them as
+  presentational and prevents screen readers from announcing the SVG filename.
+#}
+
+{% block docs_body %}
+{% include "components/searchbox.html" %}
+<div id="pytorch-article">
+  <!-- Hidden breadcrumb schema for SEO only -->
+  <div style="display:none;" itemscope itemtype="https://schema.org/BreadcrumbList">
+    {% for parent in parents %}
+    <div itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <link itemprop="item" href="{{ parent.link|e }}">
+      <meta itemprop="name" content="{{ parent.title }}">
+      <meta itemprop="position" content="{{ loop.index }}">
+    </div>
+    {% endfor %}
+    <div itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem">
+      <meta itemprop="name" content="{{ title }}">
+      <meta itemprop="position" content="{{ parents|length + 1 }}">
+    </div>
+  </div>
+  {% if theme_pytorch_project == 'tutorials' %}
+  <script>
+    if ((window.location.href.indexOf("/unstable/") != -1) && (window.location.href.indexOf("/unstable/unstable_index") < 1)) {
+      var div = '<div class="prototype-banner"><i class="fa fa-flask" aria-hidden="true"></i> <strong>Unstable feature:</strong> Not typically available in binary distributions like PyPI. Early stage for feedback and testing.</div>'
+      document.addEventListener('DOMContentLoaded', function () {
+        document.getElementById("pytorch-article").insertAdjacentHTML('afterBegin', div);
+      });
+    }
+  </script>
+  {% endif %}
+  {% if theme_pytorch_project == 'tutorials' or has_sphinx_gallery %}
+  <div class="pytorch-call-to-action-links">
+    <div id="tutorial-type">{{ pagename }}</div>
+    <a id="colab-link" data-behavior="call-to-action-event" data-response="Run in Google Colab" target="_blank">
+      <div id="google-colab-link">
+        {# alt="" marks this as decorative; the link text "Run in Google Colab" already describes the action #}
+        <img class="call-to-action-img" src="{{ pathto('_static/img/pytorch-colab.svg', 1) }}" alt="" />
+        <div class="call-to-action-desktop-view">Run in Google Colab</div>
+        <div class="call-to-action-mobile-view">Colab</div>
+      </div>
+    </a>
+    <a id="notebook-link" data-behavior="call-to-action-event" data-response="Download Notebook">
+      <div id="download-notebook-link">
+        {# alt="" marks this as decorative; the link text "Download Notebook" already describes the action #}
+        <img class="call-to-action-notebook-img" src="{{ pathto('_static/img/pytorch-download.svg', 1) }}" alt="" />
+        <div class="call-to-action-desktop-view">Download Notebook</div>
+        <div class="call-to-action-mobile-view">Notebook</div>
+      </div>
+    </a>
+    <a id="github-link" data-behavior="call-to-action-event" data-response="View on Github" target="_blank">
+      <div id="github-view-link">
+        {# alt="" marks this as decorative; the link text "View on GitHub" already describes the action #}
+        <img class="call-to-action-img" src="{{ pathto('_static/img/pytorch-github.svg', 1) }}" alt="" />
+        <div class="call-to-action-desktop-view">View on GitHub</div>
+        <div class="call-to-action-mobile-view">GitHub</div>
+      </div>
+    </a>
+  </div>
+  {% endif %}
+  {{ super() }}
+</div>
+{% endblock docs_body %}
