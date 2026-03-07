@@ -1,0 +1,67 @@
+/*
+ * keyboard-focus.css — PyTorch Docs keyboard navigation enhancements
+ *
+ * Companion to scrollable-regions.js.
+ *
+ * Provides a clearly visible focus ring for code blocks that have been
+ * made keyboard-focusable by scrollable-regions.js (tabindex="0").
+ *
+ * Also improves focus visibility across interactive elements site-wide
+ * to support WCAG 2.4.11 Focus Appearance (new in WCAG 2.2, AA).
+ */
+
+/* ── Focusable scrollable code blocks ────────────────────────────────────── */
+pre[tabindex="0"]:focus-visible,
+.highlight[tabindex="0"]:focus-visible,
+div[tabindex="0"][class*="highlight"]:focus-visible {
+  outline: 3px solid var(--pst-color-primary, #ee4c2c);
+  outline-offset: 2px;
+  border-radius: 4px;
+  /* Subtle background shift to reinforce focus state */
+  box-shadow: 0 0 0 5px rgba(238, 76, 44, 0.12);
+}
+
+/* ── Global focus-visible improvements ───────────────────────────────────── */
+/*
+ * Ensure all interactive elements have a clearly visible focus indicator.
+ * Uses :focus-visible to avoid showing outlines on mouse click.
+ */
+:focus-visible {
+  outline: 2px solid var(--pst-color-primary, #ee4c2c);
+  outline-offset: 2px;
+}
+
+/* Override any theme rules that suppress outlines */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--pst-color-primary, #ee4c2c);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* ── Skip-to-content link ────────────────────────────────────────────────── */
+/*
+ * Ensure the skip link (if present) is visible on focus.
+ * The theme may include one; if not, this rule is harmless.
+ */
+a.skip-link:focus,
+a[href="#main-content"]:focus,
+a[href="#content"]:focus {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: var(--pst-color-primary, #ee4c2c);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 4px;
+  text-decoration: none;
+  clip: auto;
+  width: auto;
+  height: auto;
+}
