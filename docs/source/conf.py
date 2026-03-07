@@ -2375,6 +2375,10 @@ html_css_files = [
     "https://cdn.jsdelivr.net/npm/katex@0.10.0-beta/dist/katex.min.css",
 ]
 
+html_js_files = [
+    "js/summary-a11y.js",
+]
+
 
 from sphinx.ext.coverage import CoverageBuilder
 
