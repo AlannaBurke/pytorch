@@ -1,0 +1,68 @@
+/*
+ * keyboard-nav.css — PyTorch Docs keyboard navigation accessibility fixes
+ *
+ * Addresses violations identified in the automated axe-core audit:
+ *   - scrollable-region-focusable (WCAG 2.1.1): code blocks must be
+ *     keyboard-reachable when their content overflows
+ *
+ * The fix adds tabindex="0" via JavaScript (see keyboard-nav.js) and
+ * this stylesheet provides the visual affordances: focus ring and
+ * a subtle scroll indicator so keyboard users know the region is scrollable.
+ */
+
+/* ── Scrollable code blocks ──────────────────────────────────────────────── */
+/*
+ * .highlight divs that overflow horizontally are made focusable by
+ * keyboard-nav.js. These rules provide the focus indicator and
+ * a scroll-hint affordance.
+ */
+.highlight[tabindex="0"]:focus,
+.highlight[tabindex="0"]:focus-within {
+  outline: 2px solid #de3412;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+html[data-theme=dark] .highlight[tabindex="0"]:focus,
+html[data-theme=dark] .highlight[tabindex="0"]:focus-within {
+  outline-color: #F2765D;
+}
+
+/* Scroll hint: right-fade gradient when content overflows */
+.highlight {
+  position: relative;
+}
+.highlight.is-scrollable::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 2.5rem;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(248, 248, 248, 0.9));
+  pointer-events: none;
+  border-radius: 0 4px 4px 0;
+}
+html[data-theme=dark] .highlight.is-scrollable::after {
+  background: linear-gradient(to right, transparent, rgba(30, 30, 30, 0.9));
+}
+
+/* ── codeblock-height-limiter keyboard access ────────────────────────────── */
+/*
+ * The existing .codeblock-height-limiter class uses overflow:scroll.
+ * Ensure it is also keyboard-accessible via tabindex (set by JS).
+ */
+.codeblock-height-limiter[tabindex="0"]:focus {
+  outline: 2px solid #de3412;
+  outline-offset: 2px;
+}
+html[data-theme=dark] .codeblock-height-limiter[tabindex="0"]:focus {
+  outline-color: #F2765D;
+}
+
+/* ── Sidebar scroll areas ────────────────────────────────────────────────── */
+.bd-sidebar-primary,
+.bd-sidebar-secondary {
+  /* Already scrollable via overflow-y; ensure focus is reachable */
+  scroll-behavior: smooth;
+}
