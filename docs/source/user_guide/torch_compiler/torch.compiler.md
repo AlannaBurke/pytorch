@@ -111,6 +111,14 @@ torch.compiler_get_started.md
 ```{toctree}
 :maxdepth: 1
 :hidden:
+:caption: Triton
+
+triton/index
+```
+
+```{toctree}
+:maxdepth: 1
+:hidden:
 
 core_concepts
 ```

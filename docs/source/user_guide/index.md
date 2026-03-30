@@ -31,6 +31,7 @@ pytorch_main_components
 
 Torch.compile <torch_compiler/torch.compiler.md>
 Torch.export <torch_compiler/export.md>
+Triton <torch_compiler/triton/index.md>
 ```
 
 ```{toctree}
